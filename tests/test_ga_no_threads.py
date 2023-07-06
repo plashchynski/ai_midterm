@@ -60,5 +60,3 @@ class TestGA(unittest.TestCase):
             pop.creatures = new_creatures
                             
         self.assertNotEqual(fits[0], 0)
-
-unittest.main()
