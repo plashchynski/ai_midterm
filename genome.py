@@ -126,7 +126,8 @@ class Genome():
         for gene in new_genome:
             for i in range(len(gene)):
                 if random.random() < rate:
-                    gene[i] += 0.1
+                    r = (np.random.rand() - 0.5) * amount
+                    gene[i] += r
                 if gene[i] >= 1.0:
                     gene[i] = 0.9999
                 if gene[i] < 0.0:
