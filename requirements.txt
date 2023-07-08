@@ -1,0 +1,2 @@
+python-Levenshtein==0.21.1
+pybullet==3.2.5
