@@ -10,10 +10,10 @@ class Engine:
     def __init__(self, pop_size=10, gene_count=3, point_mutation_rate=0.1, point_mutation_amount=0.25, shrink_mutation_rate=0.25, grow_mutation_rate=0.1, verbose = False, pool_size = 1, save_elite = False) -> None:
         self.pop = population.Population(pop_size, gene_count)
         self.pool_size = pool_size
-        if pool_size == 1:
-            self.sim = simulation.ThreadedSim()
+        if pool_size > 1:
+            self.sim = simulation.ThreadedSim(self.pool_size)
         else:
-            self.sim = simulation.Simulation(self.pool_size)
+            self.sim = simulation.Simulation()
         
         self.verbose = verbose
         self.save_elite = save_elite
@@ -67,8 +67,6 @@ class Engine:
         print("Mean numbers of links: ", np.round(self.mean_numbers_of_links(), decimals=3))
 
     def run(self, generations=1000):
-        #sim = simulation.ThreadedSim(pool_size=1)
-
         for generation in tqdm(range(generations)):
         # for generation in range(generations):
             start_time = time.time()
