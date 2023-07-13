@@ -3,7 +3,7 @@ import simulation
 import genome 
 import creature 
 import numpy as np
-from tqdm import tqdm
+from tqdm.auto import tqdm
 import time
 
 class Engine:
