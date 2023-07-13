@@ -15,7 +15,8 @@ class Genome():
 
     @staticmethod
     def get_gene_spec():
-        gene_spec =  {"link-shape":{"scale":1}, 
+        gene_spec =  {
+            "link-shape":{"scale":1}, 
             "link-length": {"scale":2},
             "link-radius": {"scale":1},
             "link-recurrence": {"scale":3},
@@ -32,7 +33,8 @@ class Genome():
             "control-waveform":{"scale":1},
             "control-amp":{"scale":0.25},
             "control-freq":{"scale":1}
-            }
+        }
+
         ind = 0
         for key in gene_spec.keys():
             gene_spec[key]["ind"] = ind
