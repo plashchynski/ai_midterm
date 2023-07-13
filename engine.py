@@ -49,10 +49,21 @@ class Engine:
     def mean_numbers_of_links(self):
         return np.mean(self.numbers_of_links)
 
+    def print_metrics(self):
+        print("Best fitness: ", np.round(self.best_fit(), decimals=3))
+        print("Mean fitness: ", np.round(self.mean_fit(), decimals=3))
+        print("Mean improvement speed: ", np.round(self.mean_improvement_speed(), decimals=3))
+        print("Fittest improvement speed: ", np.round(self.fittest_improvement_speed(), decimals=3))
+        print("Best fitness std: ", np.round(self.best_fitness_std(), decimals=3))
+        print("Mean Levenstein distance: ", np.round(self.mean_levenstein_distance(), decimals=3))
+        print("Mean generation processing time: ", np.round(self.mean_generation_processing_time(), decimals=3))
+        print("Mean numbers of links: ", np.round(self.mean_numbers_of_links(), decimals=3))
+
     def run(self, epochs=1000):
         #sim = simulation.ThreadedSim(pool_size=1)
 
         for epoch in tqdm(range(epochs)):
+        # for epoch in range(epochs):
             start_time = time.time()
             for cr in self.pop.creatures:
                 self.sim.run_creature(cr, 2400)
