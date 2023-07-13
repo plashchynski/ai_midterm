@@ -7,10 +7,16 @@ from tqdm import tqdm
 import time
 
 class Engine:
-    def __init__(self, pop_size=10, gene_count=3, point_mutation_rate=0.1, point_mutation_amount=0.25, shrink_mutation_rate=0.25, grow_mutation_rate=0.1, verbose = False) -> None:
+    def __init__(self, pop_size=10, gene_count=3, point_mutation_rate=0.1, point_mutation_amount=0.25, shrink_mutation_rate=0.25, grow_mutation_rate=0.1, verbose = False, pool_size = 1, save_elite = False) -> None:
         self.pop = population.Population(pop_size, gene_count)
-        self.sim = simulation.Simulation()
+        self.pool_size = pool_size
+        if pool_size == 1:
+            self.sim = simulation.ThreadedSim()
+        else:
+            self.sim = simulation.Simulation(self.pool_size)
+        
         self.verbose = verbose
+        self.save_elite = save_elite
 
         self.point_mutation_rate = point_mutation_rate
         self.point_mutation_amount = point_mutation_amount
@@ -60,11 +66,11 @@ class Engine:
         print("Mean generation processing time: ", np.round(self.mean_generation_processing_time(), decimals=3))
         print("Mean numbers of links: ", np.round(self.mean_numbers_of_links(), decimals=3))
 
-    def run(self, epochs=1000):
+    def run(self, generations=1000):
         #sim = simulation.ThreadedSim(pool_size=1)
 
-        # for epoch in tqdm(range(epochs)):
-        for epoch in range(epochs):
+        for generation in tqdm(range(generations)):
+        # for generation in range(generations):
             start_time = time.time()
             for cr in self.pop.creatures:
                 self.sim.run_creature(cr, 2400)
@@ -109,9 +115,12 @@ class Engine:
                     new_cr = creature.Creature(1)
                     new_cr.update_dna(cr.dna)
                     new_creatures[0] = new_cr
-                    # filename = "results/elite_"+str(iteration)+".csv"
-                    filename = "results/elite.csv"
-                    genome.Genome.to_csv(cr.dna, filename)
+                    
+                    if self.save_elite:
+                        filename = "results/elite_"+str(generation)+".csv"
+                        # filename = "results/elite.csv"
+                        genome.Genome.to_csv(cr.dna, filename)
+
                     break
 
             self.pop.creatures = new_creatures
