@@ -18,6 +18,7 @@ class Genome():
         gene_spec =  {
             "link-shape":{"scale":1}, 
             "link-length": {"scale":2},
+            "link-width": {"scale":2},
             "link-radius": {"scale":1},
             "link-recurrence": {"scale":3},
             "link-mass": {"scale":1},
@@ -89,7 +90,9 @@ class Genome():
             link = URDFLink(name=link_name, 
                             parent_name=parent_name, 
                             recur=recur+1, 
+                            link_shape=gdict["link-shape"],
                             link_length=gdict["link-length"], 
+                            link_width=gdict["link-width"],
                             link_radius=gdict["link-radius"], 
                             link_mass=gdict["link-mass"],
                             joint_type=gdict["joint-type"],
@@ -185,7 +188,9 @@ class Genome():
 
 class URDFLink:
     def __init__(self, name, parent_name, recur, 
+                link_shape=None,
                 link_length=0.1, 
+                link_width=0.1,
                 link_radius=0.1, 
                 link_mass=0.1,
                 joint_type=0.1,
@@ -203,7 +208,9 @@ class URDFLink:
         self.name = name
         self.parent_name = parent_name
         self.recur = recur 
-        self.link_length=link_length 
+        self.link_shape = link_shape
+        self.link_length=link_length
+        self.link_width=link_width
         self.link_radius=link_radius
         self.link_mass=link_mass
         self.joint_type=joint_type
@@ -240,13 +247,22 @@ class URDFLink:
   
         link_tag = adom.createElement("link")
         link_tag.setAttribute("name", self.name)
+
         vis_tag = adom.createElement("visual")
         geom_tag = adom.createElement("geometry")
-        cyl_tag = adom.createElement("cylinder")
-        cyl_tag.setAttribute("length", str(self.link_length))
-        cyl_tag.setAttribute("radius", str(self.link_radius))
-        
-        geom_tag.appendChild(cyl_tag)
+
+        if self.link_shape <= 0.33:
+            shape_tag = adom.createElement("cylinder")
+            shape_tag.setAttribute("length", str(self.link_length))
+            shape_tag.setAttribute("radius", str(self.link_radius))
+        elif self.link_shape > 0.33 and self.link_shape <= 0.66:
+            shape_tag = adom.createElement("box")
+            shape_tag.setAttribute("size", str(self.link_length) + " " + str(self.link_width) + " " + str(self.link_radius))
+        elif self.link_shape > 0.66:
+            shape_tag = adom.createElement("sphere")
+            shape_tag.setAttribute("radius", str(self.link_radius))
+
+        geom_tag.appendChild(shape_tag)
         vis_tag.appendChild(geom_tag)
         
         
@@ -278,7 +294,6 @@ class URDFLink:
         inertia_tag.setAttribute("iyx", "0")
         inertial_tag.appendChild(mass_tag)
         inertial_tag.appendChild(inertia_tag)
-        
 
         link_tag.appendChild(vis_tag)
         link_tag.appendChild(coll_tag)
@@ -296,10 +311,13 @@ class URDFLink:
         #   </joint>
         joint_tag = adom.createElement("joint")
         joint_tag.setAttribute("name", self.name + "_to_" + self.parent_name)
-        if self.joint_type >= 0.5:
+        if self.joint_type <= 0.33:
             joint_tag.setAttribute("type", "revolute")
-        else:
-            joint_tag.setAttribute("type", "revolute")
+        if self.joint_type > 0.33 and self.joint_type <= 0.66:
+            joint_tag.setAttribute("type", "prismatic")
+        if self.joint_type > 0.66:
+            joint_tag.setAttribute("type", "continuous")
+
         parent_tag = adom.createElement("parent")
         parent_tag.setAttribute("link", self.parent_name)
         child_tag = adom.createElement("child")
@@ -334,7 +352,3 @@ class URDFLink:
         joint_tag.appendChild(limit_tag)
         joint_tag.appendChild(orig_tag)
         return joint_tag
-            
-
-
-
