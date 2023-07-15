@@ -21,7 +21,7 @@ class Genome():
             "link-width": {"scale":2},
             "link-radius": {"scale":1},
             "link-recurrence": {"scale":3},
-            "link-mass": {"scale":1},
+            "link-density": {"scale":1},
             "joint-type": {"scale":1},
             "joint-parent":{"scale":1},
             "joint-axis-xyz": {"scale":1},
@@ -94,7 +94,7 @@ class Genome():
                             link_length=gdict["link-length"], 
                             link_width=gdict["link-width"],
                             link_radius=gdict["link-radius"], 
-                            link_mass=gdict["link-mass"],
+                            link_density=gdict["link-density"],
                             joint_type=gdict["joint-type"],
                             joint_parent=gdict["joint-parent"],
                             joint_axis_xyz=gdict["joint-axis-xyz"],
@@ -192,7 +192,7 @@ class URDFLink:
                 link_length=0.1, 
                 link_width=0.1,
                 link_radius=0.1, 
-                link_mass=0.1,
+                link_density=0.1,
                 joint_type=0.1,
                 joint_parent=0.1,
                 joint_axis_xyz=0.1,
@@ -212,7 +212,7 @@ class URDFLink:
         self.link_length=link_length
         self.link_width=link_width
         self.link_radius=link_radius
-        self.link_mass=link_mass
+        self.link_density=link_density
         self.joint_type=joint_type
         self.joint_parent=joint_parent
         self.joint_axis_xyz=joint_axis_xyz
@@ -249,31 +249,31 @@ class URDFLink:
         link_tag.setAttribute("name", self.name)
 
         vis_tag = adom.createElement("visual")
+        coll_tag = adom.createElement("collision")
+
         geom_tag = adom.createElement("geometry")
 
         if self.link_shape <= 0.33:
+            geometry_type = "cylinder"
+        elif self.link_shape > 0.33 and self.link_shape <= 0.66:
+            geometry_type = "box"
+        elif self.link_shape > 0.66:
+            geometry_type = "sphere"
+
+        if geometry_type == "cylinder":
             shape_tag = adom.createElement("cylinder")
             shape_tag.setAttribute("length", str(self.link_length))
             shape_tag.setAttribute("radius", str(self.link_radius))
-        elif self.link_shape > 0.33 and self.link_shape <= 0.66:
+        elif geometry_type == "box":
             shape_tag = adom.createElement("box")
-            shape_tag.setAttribute("size", str(self.link_length) + " " + str(self.link_width) + " " + str(self.link_radius))
-        elif self.link_shape > 0.66:
+            shape_tag.setAttribute("size", str(self.link_width) + " " + str(self.link_length) + " " + str(self.link_radius))
+        elif geometry_type == "sphere":
             shape_tag = adom.createElement("sphere")
             shape_tag.setAttribute("radius", str(self.link_radius))
 
         geom_tag.appendChild(shape_tag)
-        vis_tag.appendChild(geom_tag)
-        
-        
-        coll_tag = adom.createElement("collision")
-        c_geom_tag = adom.createElement("geometry")
-        c_cyl_tag = adom.createElement("cylinder")
-        c_cyl_tag.setAttribute("length", str(self.link_length))
-        c_cyl_tag.setAttribute("radius", str(self.link_radius))
-        
-        c_geom_tag.appendChild(c_cyl_tag)
-        coll_tag.appendChild(c_geom_tag)
+        vis_tag.appendChild(geom_tag.cloneNode(deep=True))
+        coll_tag.appendChild(geom_tag)
         
         #     <inertial>
         # 	    <mass value="0.25"/>
@@ -281,9 +281,19 @@ class URDFLink:
         #     </inertial>
         inertial_tag = adom.createElement("inertial")
         mass_tag = adom.createElement("mass")
-        # pi r^2 * height
-        mass = np.pi * (self.link_radius * self.link_radius) * self.link_length
+        
+        volume = None
+        if geometry_type == "cylinder":
+            # pi r^2 * height
+            volume = np.pi * (self.link_radius * self.link_radius) * self.link_length
+        elif geometry_type == "box":
+            volume = self.link_length * self.link_width * self.link_radius
+        elif geometry_type == "sphere":
+            volume = (4/3) * np.pi * (self.link_radius * self.link_radius * self.link_radius)
+
+        mass = volume * self.link_density
         mass_tag.setAttribute("value", str(mass))
+        
         inertia_tag = adom.createElement("inertia")
         # <inertia ixx="0.0003" iyy="0.0003" izz="0.0003" ixy="0" ixz="0" iyz="0"/>
         inertia_tag.setAttribute("ixx", "0.03")
