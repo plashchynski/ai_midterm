@@ -5,19 +5,21 @@ import creature
 import numpy as np
 from tqdm.auto import tqdm
 import time
+import threading
 
 class Engine:
-    def __init__(self, pop_size=10, gene_count=3, point_mutation_rate=0.1, point_mutation_amount=0.25, shrink_mutation_rate=0.25, grow_mutation_rate=0.1, verbose = False, pool_size = 1, save_elite = False) -> None:
+    def __init__(self, pop_size=10, gene_count=3, point_mutation_rate=0.1, point_mutation_amount=0.25, shrink_mutation_rate=0.25, grow_mutation_rate=0.1, verbose = False, pool_size = 1, save_elite = False, crossover = True) -> None:
         self.pop = population.Population(pop_size, gene_count)
         self.pool_size = pool_size
         if pool_size > 1:
             self.sim = simulation.ThreadedSim(self.pool_size)
         else:
-            self.sim = simulation.Simulation()
-        
+            self.sim = simulation.Simulation(sim_id=threading.get_native_id())
+
         self.verbose = verbose
         self.save_elite = save_elite
 
+        self.crossover = crossover
         self.point_mutation_rate = point_mutation_rate
         self.point_mutation_amount = point_mutation_amount
         self.shrink_mutation_rate = shrink_mutation_rate
@@ -90,12 +92,18 @@ class Engine:
             fit_map = population.Population.get_fitness_map(fits)
             new_creatures = []
             for i in range(len(self.pop.creatures)):
-                p1_ind = population.Population.select_parent(fit_map)
-                p2_ind = population.Population.select_parent(fit_map)
-                p1 = self.pop.creatures[p1_ind]
-                p2 = self.pop.creatures[p2_ind]
-                # now we have the parents!
-                dna = genome.Genome.crossover(p1.dna, p2.dna)
+                if self.crossover:
+                    p1_ind = population.Population.select_parent(fit_map)
+                    p2_ind = population.Population.select_parent(fit_map)
+                    p1 = self.pop.creatures[p1_ind]
+                    p2 = self.pop.creatures[p2_ind]
+                    # now we have the parents!
+                    dna = genome.Genome.crossover(p1.dna, p2.dna)
+                else:                
+                    p1_ind = population.Population.select_parent(fit_map)
+                    p1 = self.pop.creatures[p1_ind]
+                    dna = p1.dna
+
                 dna = genome.Genome.point_mutate(dna,
                                                  rate=self.point_mutation_rate,
                                                  amount=self.point_mutation_amount)
@@ -108,6 +116,7 @@ class Engine:
 
             # elitism
             max_fit = np.max(fits)
+
             for cr in self.pop.creatures:
                 if cr.get_distance_travelled() == max_fit:
                     new_cr = creature.Creature(1)
