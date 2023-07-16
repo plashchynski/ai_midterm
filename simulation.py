@@ -17,13 +17,13 @@ class Simulation:
 
         xml_file = 'temp' + str(self.sim_id) + '.urdf'
         xml_str = cr.to_xml()
+
         with open(xml_file, 'w') as f:
             f.write(xml_str)
         
         cid = p.loadURDF(xml_file, physicsClientId=pid)
 
         p.resetBasePositionAndOrientation(cid, [0, 0, 2.5], [0, 0, 0, 1], physicsClientId=pid)
-
 
         for step in range(iterations):
             p.stepSimulation(physicsClientId=pid)
