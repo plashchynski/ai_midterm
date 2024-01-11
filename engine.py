@@ -8,7 +8,7 @@ import time
 import threading
 
 class Engine:
-    def __init__(self, pop_size=10, gene_count=3, point_mutation_rate=0.1, point_mutation_amount=0.25, shrink_mutation_rate=0.25, grow_mutation_rate=0.1, verbose = False, pool_size = 1, save_elite = False, crossover = True) -> None:
+    def __init__(self, pop_size=10, gene_count=3, point_mutation_rate=0.1, point_mutation_amount=0.25, shrink_mutation_rate=0.25, grow_mutation_rate=0.09, duplicate_mutation_rate=0.01, verbose = False, pool_size = 1, save_elite = False, crossover = True, elites = 1) -> None:
         self.pop = population.Population(pop_size, gene_count)
         self.pool_size = pool_size
         if pool_size > 1:
@@ -16,6 +16,7 @@ class Engine:
         else:
             self.sim = simulation.Simulation(sim_id=threading.get_native_id())
 
+        self.elites = elites
         self.verbose = verbose
         self.save_elite = save_elite
 
@@ -24,6 +25,7 @@ class Engine:
         self.point_mutation_amount = point_mutation_amount
         self.shrink_mutation_rate = shrink_mutation_rate
         self.grow_mutation_rate = grow_mutation_rate
+        self.duplicate_mutation_rate = duplicate_mutation_rate
 
         # Telemetry
         self.fittest_history = []
@@ -73,6 +75,12 @@ class Engine:
         # for generation in range(generations):
             start_time = time.time()
             for cr in self.pop.creatures:
+                cr.get_expanded_links()
+
+                # Skip creatures with too many links
+                if len(cr.exp_links) > 127:
+                    continue
+
                 self.sim.run_creature(cr, 2400)
 
             fits = [cr.get_distance_travelled() for cr in self.pop.creatures]
@@ -83,11 +91,11 @@ class Engine:
             mean = np.round(np.mean(fits), 3)
             self.fittest_history.append(fittest)
             self.mean_history.append(mean)
-            self.levenstein_distances.append(self.pop.levenshtein_distance())
+            # self.levenstein_distances.append(self.pop.levenshtein_distance())
             self.numbers_of_links.append(np.mean(links))
 
             if self.verbose:
-                print("Epoch #", epoch, "fittest:", fittest, "mean:", mean, "mean links", np.round(np.mean(links)), "max links", np.round(np.max(links)))
+                print("Gen #", generation, "fittest:", fittest, "mean:", mean, "mean links", np.round(np.mean(links)), "max links", np.round(np.max(links)))
   
             fit_map = population.Population.get_fitness_map(fits)
             new_creatures = []
@@ -107,28 +115,34 @@ class Engine:
                 dna = genome.Genome.point_mutate(dna,
                                                  rate=self.point_mutation_rate,
                                                  amount=self.point_mutation_amount)
-                dna = genome.Genome.shrink_mutate(dna, rate=self.shrink_mutation_rate)
+                
+                if self.shrink_mutation_rate is None:
+                    # the shrink mutation rate is a function of the number of links
+                    shrink_mutation_rate = len(dna) / 12
+                else:
+                    shrink_mutation_rate = self.shrink_mutation_rate
+
+                dna = genome.Genome.shrink_mutate(dna, rate=shrink_mutation_rate)
                 dna = genome.Genome.grow_mutate(dna, rate=self.grow_mutation_rate)
+                dna = genome.Genome.duplicate_mutate(dna, rate=self.duplicate_mutation_rate)
 
                 cr = creature.Creature(1)
                 cr.update_dna(dna)
+
                 new_creatures.append(cr)
 
             # elitism
-            max_fit = np.max(fits)
 
-            for cr in self.pop.creatures:
-                if cr.get_distance_travelled() == max_fit:
-                    new_cr = creature.Creature(1)
-                    new_cr.update_dna(cr.dna)
-                    new_creatures[0] = new_cr
-                    
-                    if self.save_elite:
-                        filename = "results/elite_"+str(generation)+".csv"
-                        # filename = "results/elite.csv"
-                        genome.Genome.to_csv(cr.dna, filename)
+            creatures_sorted = sorted(self.pop.creatures, key=lambda creature: creature.get_distance_travelled(), reverse=True)
+            for i, elite in enumerate(creatures_sorted[0:self.elites]):
+                new_cr = creature.Creature(1)
+                new_cr.update_dna(elite.dna)
+                new_creatures.append(elite)
 
-                    break
+            if self.save_elite:
+                filename = "results/elite_"+str(generation)+".csv"
+                # filename = "results/elite.csv"
+                genome.Genome.to_csv(creatures_sorted[0].dna, filename)
 
             self.pop.creatures = new_creatures
 

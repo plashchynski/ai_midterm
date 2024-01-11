@@ -38,6 +38,7 @@ def main(csv_file):
     wait_time = 1.0/240 # seconds
     total_time = 30 # seconds
     step = 0
+
     while True:
         p.stepSimulation()
         step += 1
@@ -52,9 +53,19 @@ def main(csv_file):
                             controlMode=mode, 
                             targetVelocity=vel)
             new_pos, orn = p.getBasePositionAndOrientation(rob1)
+            
+
             #print(new_pos)
             dist_moved = np.linalg.norm(np.asarray(start_pos) - np.asarray(new_pos))
             print(dist_moved)
+
+        if csv_file == "elite_a.csv":
+            if step % 240 == 0 and step < 1200:
+                p.resetDebugVisualizerCamera(cameraDistance=5, cameraYaw=0, cameraPitch=200, cameraTargetPosition=new_pos)
+        else:
+            if step % 200 == 0 and step < 300:
+                p.resetDebugVisualizerCamera(cameraDistance=5, cameraYaw=0, cameraPitch=200, cameraTargetPosition=new_pos)
+
         time.sleep(wait_time)
         elapsed_time += wait_time
         if elapsed_time > total_time:

@@ -160,6 +160,16 @@ class Genome():
         else:
             return copy.copy(genome)
 
+    @staticmethod
+    def duplicate_mutate(genome, rate):
+        if random.random() < rate:
+            ind = random.randint(0, len(genome)-1)
+            new_genome = copy.copy(genome)
+            new_genome = np.insert(new_genome, ind, new_genome[ind], axis=0)
+            return new_genome
+        else:
+            return copy.copy(genome)
+
 
     @staticmethod
     def to_csv(dna, csv_file):
